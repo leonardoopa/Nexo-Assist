@@ -34,5 +34,41 @@ services:
       context: ./services/servicedesk
       target: test
 
+  # Next.js app: login, session, conversations (TypeScript). The agent and the chat come in later parts.
+  web:
+    build:
+      context: ./apps/web
+    depends_on:
+      servicedesk:
+        condition: service_healthy
+    environment:
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-session-secret-change-before-deploying}
+      SERVICEDESK_URL: http://servicedesk:8000
+      SERVICEDESK_API_KEY: ${SERVICEDESK_API_KEY:-dev-servicedesk-key}
+      DATABASE_PATH: /data/nexo-assist.db
+      CHAT_MESSAGE_LIMIT: ${CHAT_MESSAGE_LIMIT:-30}
+    volumes:
+      - web-data:/data
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # docker compose --profile test run --rm --build web-test
+  web-test:
+    profiles: ["test"]
+    build:
+      context: ./apps/web
+      target: test
+
 volumes:
   servicedesk-data:
+  web-data:

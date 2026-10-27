@@ -22,6 +22,7 @@ node_modules/
 .next/
 coverage/
 *.tsbuildinfo
+next-env.d.ts
 
 # OS / editors
 .DS_Store
