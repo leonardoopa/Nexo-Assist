@@ -16,7 +16,14 @@ describe("parseEnv", () => {
       DATABASE_PATH: "./data/nexo-assist.db",
       CHAT_MESSAGE_LIMIT: 30,
       LLM_MODEL: "anthropic/claude-haiku-5-5",
+      DEMO_DATA: false,
     });
+  });
+
+  it("reads the demo switch as a word, not as a truthy string", () => {
+    expect(parseEnv({ ...valid, DEMO_DATA: "true" }).DEMO_DATA).toBe(true);
+    expect(parseEnv({ ...valid, DEMO_DATA: "false" }).DEMO_DATA).toBe(false);
+    expect(parseEnv({ ...valid, DEMO_DATA: "0" }).DEMO_DATA).toBe(false);
   });
 
   it("reads numbers and URLs from strings", () => {

@@ -42,6 +42,22 @@ export function formatShortDate(iso: string): string {
 /** "16 out, 14:20" */
 export const formatDateTime = (iso: string): string => `${formatShortDate(iso)}, ${formatClock(iso)}`;
 
+/** The calendar day in the company's timezone, "2026-10-28": two instants share a day when this matches. */
+export const dayKey = (iso: string): string => calendarDay.format(new Date(iso));
+
+/** "Hoje", "Ontem" or "16 out": the label of a day separator in a transcript. */
+export function formatDayLabel(iso: string, now: Date = new Date()): string {
+  const day = dayKey(iso);
+  if (day === dayKey(now.toISOString())) return "Hoje";
+  if (day === dayKey(new Date(now.getTime() - DAY_MS).toISOString())) return "Ontem";
+  return formatShortDate(iso);
+}
+
+/** The time on a list row: "13:43" for today, "16 out" for another day. */
+export function formatListTime(iso: string, now: Date = new Date()): string {
+  return dayKey(iso) === dayKey(now.toISOString()) ? formatClock(iso) : formatShortDate(iso);
+}
+
 /** "até 13:43" for a time today, "até 30 out, 10:00" for another day. */
 export function formatUntil(iso: string, now: Date = new Date()): string {
   const sameDay = calendarDay.format(new Date(iso)) === calendarDay.format(now);

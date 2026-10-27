@@ -6,7 +6,9 @@ import {
   formatClock,
   formatDateTime,
   formatDaysAgo,
+  formatDayLabel,
   formatDraftId,
+  formatListTime,
   formatShortDate,
   formatUntil,
   initials,
@@ -24,6 +26,20 @@ describe("dates in the company timezone", () => {
     const now = new Date("2026-10-28T13:00:00Z");
     expect(formatUntil("2026-10-28T20:42:00Z", now)).toBe("até 17:42");
     expect(formatUntil("2026-10-30T13:00:00Z", now)).toBe("até 30 out, 10:00");
+  });
+
+  it("labels a transcript's days, counting midnight in Sao Paulo and not in UTC", () => {
+    const now = new Date("2026-10-28T13:00:00Z");
+    expect(formatDayLabel("2026-10-28T03:30:00Z", now)).toBe("Hoje");
+    expect(formatDayLabel("2026-10-28T02:30:00Z", now)).toBe("Ontem");
+    expect(formatDayLabel("2026-10-27T15:00:00Z", now)).toBe("Ontem");
+    expect(formatDayLabel("2026-10-20T15:00:00Z", now)).toBe("20 out");
+  });
+
+  it("shows the time of today's rows and the date of older ones", () => {
+    const now = new Date("2026-10-28T13:00:00Z");
+    expect(formatListTime("2026-10-28T12:05:00Z", now)).toBe("09:05");
+    expect(formatListTime("2026-10-27T12:05:00Z", now)).toBe("27 out");
   });
 
   it("names drafts with three digits", () => {

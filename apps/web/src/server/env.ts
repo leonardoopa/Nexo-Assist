@@ -13,6 +13,8 @@ const envSchema = z.object({
     .string()
     .regex(/^[a-z0-9-]+\/.+$/, "use o formato provedor/modelo, por exemplo anthropic/claude-haiku-5-5")
     .default("anthropic/claude-haiku-5-5"),
+  // Fills an empty database with sample conversations so the analyst console has something to show.
+  DEMO_DATA: z.stringbool().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;
