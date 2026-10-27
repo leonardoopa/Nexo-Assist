@@ -22,6 +22,7 @@ import {
   type Message,
   type MessagePart,
   type MessageRole,
+  type TicketRelation,
 } from "./types";
 
 interface ConversationRow {
@@ -161,6 +162,34 @@ export class ConversationStore {
       .prepare("SELECT * FROM messages WHERE conversation_id = ? ORDER BY seq")
       .all(conversationId) as MessageRow[];
     return rows.map(toMessage);
+  }
+
+  getMessage(messageId: string): Message | null {
+    const row = this.#db.prepare("SELECT * FROM messages WHERE id = ?").get(messageId) as MessageRow | undefined;
+    return row ? toMessage(row) : null;
+  }
+
+  /** Rewrites the structured parts of a message, e.g. a draft card that was just confirmed. */
+  updateMessageParts(messageId: string, update: (parts: MessagePart[]) => MessagePart[]): void {
+    const message = this.getMessage(messageId);
+    if (!message) return;
+    this.#db
+      .prepare("UPDATE messages SET parts = ? WHERE id = ?")
+      .run(JSON.stringify(update(message.parts)), messageId);
+  }
+
+  /** Remembers that a conversation touched a ticket, for the analyst's panel and for what the agent may mention. */
+  linkTicket(conversationId: string, ticketId: string, relation: TicketRelation): void {
+    this.#db
+      .prepare("INSERT OR IGNORE INTO conversation_tickets (conversation_id, ticket_id, relation, at) VALUES (?, ?, ?, ?)")
+      .run(conversationId, ticketId, relation, this.#now());
+  }
+
+  linkedTickets(conversationId: string): Array<{ ticketId: string; relation: TicketRelation }> {
+    const rows = this.#db
+      .prepare("SELECT ticket_id, relation FROM conversation_tickets WHERE conversation_id = ? ORDER BY at, ticket_id")
+      .all(conversationId) as Array<{ ticket_id: string; relation: TicketRelation }>;
+    return rows.map((row) => ({ ticketId: row.ticket_id, relation: row.relation }));
   }
 
   // ---- starting ----------------------------------------------------------------------------------

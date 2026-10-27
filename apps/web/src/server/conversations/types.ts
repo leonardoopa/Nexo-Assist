@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 import type { SupportGroup } from "@/lib/domain";
+import {
+  affectedSchema,
+  categorySchema,
+  prioritySchema,
+  ticketStatusSchema,
+  ticketTypeSchema,
+} from "@/server/servicedesk/schemas";
 
 /**
  * Who is handling a conversation:
@@ -12,9 +19,11 @@ import type { SupportGroup } from "@/lib/domain";
 export type ConversationStatus = "agent" | "awaiting_analyst" | "with_analyst" | "closed";
 
 /** Why the agent handed a conversation to a person (Annex A, "Transferência"). */
-export type HandoffReason = "employee_request" | "critical" | "overdue" | "low_confidence";
+export const handoffReasonSchema = z.enum(["employee_request", "critical", "overdue", "low_confidence"]);
+export type HandoffReason = z.infer<typeof handoffReasonSchema>;
 
 export type ClosedBy = "agent" | "analyst";
+export type TicketRelation = "created" | "updated" | "reopened" | "transferred" | "consulted";
 export type MessageRole = "user" | "assistant" | "analyst" | "system";
 export type ConsoleTab = "all" | "for_you" | "agent" | "mine";
 
@@ -59,7 +68,60 @@ export const eventPartSchema = z.object({
   kind: z.enum(["handoff", "assumed", "returned_to_agent", "closed"]),
   data: z.record(z.string(), z.string()),
 });
-export const messagePartSchema = z.discriminatedUnion("type", [eventPartSchema]);
+
+/** A ticket as it looked when the agent showed it, so the history renders without asking the service desk again. */
+export const ticketSnapshotSchema = z.object({
+  id: z.string(),
+  type: ticketTypeSchema,
+  title: z.string(),
+  description: z.string().optional(),
+  category: categorySchema,
+  subcategory: z.string().nullable(),
+  priority: prioritySchema,
+  status: ticketStatusSchema,
+  createdAt: z.string(),
+  lastResponseAt: z.string(),
+  dueAt: z.string(),
+  slaLabel: z.string(),
+  overdue: z.boolean(),
+  clockRunning: z.boolean(),
+});
+export type TicketSnapshot = z.infer<typeof ticketSnapshotSchema>;
+
+export const ticketCardPartSchema = z.object({ type: z.literal("ticket_card"), ticket: ticketSnapshotSchema });
+export const ticketPickerPartSchema = z.object({ type: z.literal("ticket_picker"), tickets: z.array(ticketSnapshotSchema) });
+export const quickRepliesPartSchema = z.object({ type: z.literal("quick_replies"), options: z.array(z.string()) });
+
+export const draftStatusSchema = z.enum(["pending", "confirmed", "cancelled", "superseded"]);
+export type DraftStatus = z.infer<typeof draftStatusSchema>;
+
+/** The draft shown for confirmation. Its status is rewritten in place when the employee decides. */
+export const draftPartSchema = z.object({
+  type: z.literal("draft"),
+  draftId: z.number().int(),
+  kind: z.enum(["ticket_create", "ticket_update", "ticket_reopen"]),
+  status: draftStatusSchema,
+  /** The ticket an update or reopen targets, or the one a confirmed creation produced. */
+  ticketId: z.string().nullable(),
+  title: z.string(),
+  description: z.string(),
+  category: categorySchema.nullable(),
+  subcategory: z.string().nullable(),
+  priority: prioritySchema.nullable(),
+  affected: affectedSchema.nullable(),
+  slaLabel: z.string().nullable(),
+  dueAt: z.string().nullable(),
+  similar: z.array(z.object({ id: z.string(), title: z.string() })),
+});
+export type DraftPart = z.infer<typeof draftPartSchema>;
+
+export const messagePartSchema = z.discriminatedUnion("type", [
+  eventPartSchema,
+  ticketCardPartSchema,
+  ticketPickerPartSchema,
+  draftPartSchema,
+  quickRepliesPartSchema,
+]);
 export type MessagePart = z.infer<typeof messagePartSchema>;
 
 export interface Message {

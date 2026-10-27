@@ -51,4 +51,47 @@ CREATE TABLE messages (
 );
 `,
   },
+  {
+    id: "0002_agent",
+    sql: `
+-- Pending actions the employee must confirm before anything is created or changed.
+CREATE TABLE drafts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id TEXT NOT NULL REFERENCES conversations (id),
+  kind TEXT NOT NULL CHECK (kind IN ('ticket_create', 'ticket_update', 'ticket_reopen')),
+  payload TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'cancelled', 'superseded')),
+  message_id TEXT REFERENCES messages (id),
+  ticket_id TEXT,
+  created_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+CREATE INDEX idx_drafts_conversation ON drafts (conversation_id, status);
+
+-- What the agent understood, did and why, one record per assistant message.
+CREATE TABLE agent_decisions (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES conversations (id),
+  message_id TEXT NOT NULL UNIQUE REFERENCES messages (id),
+  intent TEXT NOT NULL,
+  confidence REAL NOT NULL,
+  model TEXT,
+  latency_ms INTEGER,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  data TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX idx_decisions_conversation ON agent_decisions (conversation_id, created_at);
+
+-- Tickets a conversation created, changed, transferred or looked at.
+CREATE TABLE conversation_tickets (
+  conversation_id TEXT NOT NULL REFERENCES conversations (id),
+  ticket_id TEXT NOT NULL,
+  relation TEXT NOT NULL CHECK (relation IN ('created', 'updated', 'reopened', 'transferred', 'consulted')),
+  at TEXT NOT NULL,
+  PRIMARY KEY (conversation_id, ticket_id, relation)
+);
+`,
+  },
 ];
