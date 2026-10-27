@@ -2,7 +2,7 @@
 
 Agent de atendimento do service desk de TI da Nexo, em formato de chat: o funcionário descreve o problema com as próprias palavras, e o agent consulta os chamados dele, busca na central de ajuda, abre ou atualiza chamados e chama um analista quando precisa. Projeto do desafio técnico do processo seletivo Beyond the Bytes.
 
-> **Em construção, por partes.** Prontas: parte 1 (serviço de chamados) e parte 2 (app web com login, sessão e banco de conversas); o agent e o chat chegam nas próximas. Plano e decisões em [docs/plano.md](docs/plano.md), requisitos em [docs/prd.md](docs/prd.md), protótipo em [docs/prototipo.md](docs/prototipo.md).
+> **Em construção, por partes.** Prontas: partes 1 (serviço de chamados), 2 (app web com login, sessão e banco de conversas), 3 (agent Mastra) e 4 (chat do funcionário); o console do analista chega na próxima. Plano e decisões em [docs/plano.md](docs/plano.md), requisitos em [docs/prd.md](docs/prd.md), protótipo em [docs/prototipo.md](docs/prototipo.md).
 
 ## Como rodar
 
@@ -87,6 +87,15 @@ Next.js 16 com TypeScript estrito, em `apps/web`. Da interface do protótipo já
 - **Cliente do serviço de chamados** (`src/server/servicedesk`): valida toda resposta com zod, repete leituras e escritas quando o legado cai (502/503/504, rede, timeout) respeitando `Retry-After`, e toda escrita carrega uma chave de idempotência, então repetir nunca duplica um chamado. Para ver: `curl -X POST -H 'X-API-Key: dev-servicedesk-key' 'http://localhost:8100/admin/outage?seconds=3'` e entre no app durante a queda; o login demora alguns segundos e passa.
 - **Conversas** (`src/server/conversations`): SQLite em volume, com migrações versionadas. Cada funcionário tem no máximo uma conversa aberta; os estados são `agent`, `awaiting_analyst`, `with_analyst` e `closed`, com transições validadas e o limite de mensagens por sessão aplicado dentro de uma transação.
 - **Configuração:** variáveis em `.env.example`. O app não sobe com configuração inválida e não tem nenhum segredo embutido no código.
+
+## Agent e chat (partes 3 e 4)
+
+Para conversar de verdade, ponha a chave do provedor no `.env` (`ANTHROPIC_API_KEY` para o modelo padrão `anthropic/claude-haiku-5-5`; outros provedores em `LLM_MODEL`, formato `provedor/modelo`) e rode `docker compose up --build -d --wait`. Sem chave o chat funciona até a tela e avisa o que falta. Um modelo pequeno é o padrão porque cada mensagem faz poucas chamadas curtas, e velocidade e custo por conversa importam mais que raciocínio longo.
+
+- **Como o agent decide:** cada mensagem roda o agent do Mastra com as tools de consulta (chamados, central de ajuda), classificação de prioridade, rascunho e transferência. Ele só fala pela tool `reply_to_employee`, que traz a resposta e a explicação. O modelo entende o pedido; o código aplica o Anexo A (prioridade, duplicidade, prazos, quando transferir) e nada é criado sem a confirmação do funcionário.
+- **Transparência:** acima de cada resposta aparecem os passos ("consultou seus chamados"). "Como decidi" abre o detalhe: o que entendeu, o que fez, por quê, a segurança com seus fatores, as regras (marcadas como verificadas pelo sistema ou só declaradas pelo agent), cada passo com tempo e o uso de tokens.
+- **Chat:** a resposta chega em streaming; cards de chamado, lista para escolher, rascunho com Confirmar, Editar e Cancelar (⌘↵ confirma), respostas rápidas, contador de 30 mensagens por sessão e avisos de transferência, atendimento por analista e limite. Enquanto um analista atende, a tela atualiza sozinha.
+- **Estado desta parte:** os testes automáticos usam um modelo roteirizado; a qualidade das decisões com um LLM real ainda será medida (parte 6).
 
 ## Estrutura
 
