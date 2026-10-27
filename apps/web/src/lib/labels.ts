@@ -1,4 +1,29 @@
+import type { Intent } from "@/server/agent/decision";
+import type { HandoffReason } from "@/server/conversations/types";
 import type { Affected, Category, Priority, TicketStatus } from "@/server/servicedesk/schemas";
+
+export const INTENT_LABEL: Record<Intent, string> = {
+  answer_question: "Tirar uma dúvida",
+  check_ticket: "Consultar chamado",
+  update_ticket: "Complementar chamado",
+  open_ticket: "Abrir chamado",
+  reopen_ticket: "Reabrir chamado",
+  ask_missing_info: "Pedir informação que falta",
+  confirm_action: "Confirmar ação",
+  cancel_action: "Cancelar ação",
+  handoff: "Chamar um analista",
+  out_of_scope: "Fora do escopo de TI",
+  small_talk: "Conversa",
+  unclear: "Pedido pouco claro",
+  error: "Erro",
+};
+
+export const HANDOFF_REASON_LABEL: Record<HandoffReason, string> = {
+  employee_request: "O funcionário pediu um analista",
+  critical: "Caso crítico",
+  overdue: "Chamado vencido",
+  low_confidence: "O agent não teve segurança",
+};
 
 // Portuguese names for the service desk vocabulary, shared by the agent and the screens.
 

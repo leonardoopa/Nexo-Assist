@@ -23,22 +23,6 @@ export const intentSchema = z.enum([
 ]);
 export type Intent = z.infer<typeof intentSchema>;
 
-export const INTENT_LABEL: Record<Intent, string> = {
-  answer_question: "Tirar uma dúvida",
-  check_ticket: "Consultar chamado",
-  update_ticket: "Complementar chamado",
-  open_ticket: "Abrir chamado",
-  reopen_ticket: "Reabrir chamado",
-  ask_missing_info: "Pedir informação que falta",
-  confirm_action: "Confirmar ação",
-  cancel_action: "Cancelar ação",
-  handoff: "Chamar um analista",
-  out_of_scope: "Fora do escopo de TI",
-  small_talk: "Conversa",
-  unclear: "Pedido pouco claro",
-  error: "Erro",
-};
-
 /** The service desk rules (Annex A) a reply can cite. */
 export const ruleIdSchema = z.enum([
   "required_fields",

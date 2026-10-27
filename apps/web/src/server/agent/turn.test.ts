@@ -169,7 +169,7 @@ describe("opening a ticket", () => {
     expect(deps.drafts.get(1)).toMatchObject({ status: "confirmed", ticketId: "INC-20520" });
     const shownDraft = deps.conversations.getMessage(draftMessage.id)?.parts[0];
     expect(shownDraft).toMatchObject({ type: "draft", status: "confirmed", ticketId: "INC-20520" });
-    expect(deps.conversations.linkedTickets(conversation.id)).toContainEqual({ ticketId: "INC-20520", relation: "created" });
+    expect(deps.conversations.linkedTickets(conversation.id)).toContainEqual(expect.objectContaining({ ticketId: "INC-20520", relation: "created" }));
   });
 
   it("confirms and cancels with the buttons, even when the session is at its message limit", async () => {

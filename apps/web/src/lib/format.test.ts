@@ -1,6 +1,36 @@
 import { describe, expect, it } from "vitest";
 
-import { daysSince, firstName, formatDaysAgo, initials } from "./format";
+import {
+  daysSince,
+  firstName,
+  formatClock,
+  formatDateTime,
+  formatDaysAgo,
+  formatDraftId,
+  formatShortDate,
+  formatUntil,
+  initials,
+} from "./format";
+
+describe("dates in the company timezone", () => {
+  it("formats times and days in Sao Paulo, not in UTC", () => {
+    expect(formatClock("2026-10-28T16:43:00Z")).toBe("13:43");
+    expect(formatClock("2026-10-28T02:05:00Z")).toBe("23:05");
+    expect(formatShortDate("2026-10-16T17:20:00Z")).toBe("16 out");
+    expect(formatDateTime("2026-10-16T17:20:00Z")).toBe("16 out, 14:20");
+  });
+
+  it("says 'até' with only the time when it is today", () => {
+    const now = new Date("2026-10-28T13:00:00Z");
+    expect(formatUntil("2026-10-28T20:42:00Z", now)).toBe("até 17:42");
+    expect(formatUntil("2026-10-30T13:00:00Z", now)).toBe("até 30 out, 10:00");
+  });
+
+  it("names drafts with three digits", () => {
+    expect(formatDraftId(381)).toBe("D-381");
+    expect(formatDraftId(7)).toBe("D-007");
+  });
+});
 
 describe("format", () => {
   it("counts whole days and never goes negative", () => {

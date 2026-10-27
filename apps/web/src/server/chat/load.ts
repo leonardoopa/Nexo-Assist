@@ -1,4 +1,4 @@
-import type { AgentRuntime } from "@/server/agent/runtime";
+import type { AgentDeps } from "@/server/agent/context";
 
 import { toConversationView, toMessageView, type ConversationView, type MessageView } from "./view";
 
@@ -9,16 +9,22 @@ export interface ChatState {
   pendingDraftId: number | null;
 }
 
-/** The employee's open conversation with every message and the decision behind each answer. */
-export function loadChat(runtime: AgentRuntime, employeeEmail: string): ChatState {
-  const { conversations, decisions, drafts } = runtime.deps;
-  const open = conversations.findOpen(employeeEmail);
-  if (!open) return { conversation: null, messages: [], pendingDraftId: null };
+export type ChatDeps = Pick<AgentDeps, "conversations" | "decisions" | "drafts">;
 
-  const explained = decisions.forConversation(open.id);
+/** A conversation that ended stays on screen for a while, so the employee sees how it ended. */
+const CLOSED_VISIBLE_MS = 12 * 60 * 60 * 1000;
+
+/** The employee's current conversation with every message and the decision behind each answer. */
+export function loadChat(deps: ChatDeps, employeeEmail: string, now: Date = new Date()): ChatState {
+  const { conversations, decisions, drafts } = deps;
+  const latest = conversations.findLatest(employeeEmail);
+  const closedLongAgo = latest?.status === "closed" && (!latest.closedAt || now.getTime() - new Date(latest.closedAt).getTime() > CLOSED_VISIBLE_MS);
+  if (!latest || closedLongAgo) return { conversation: null, messages: [], pendingDraftId: null };
+
+  const explained = decisions.forConversation(latest.id);
   return {
-    conversation: toConversationView(open, conversations.messageLimit),
-    messages: conversations.messages(open.id).map((message) => toMessageView(message, explained.get(message.id) ?? null)),
-    pendingDraftId: drafts.pending(open.id)?.id ?? null,
+    conversation: toConversationView(latest, conversations.messageLimit),
+    messages: conversations.messages(latest.id).map((message) => toMessageView(message, explained.get(message.id) ?? null)),
+    pendingDraftId: drafts.pending(latest.id)?.id ?? null,
   };
 }
