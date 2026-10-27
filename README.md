@@ -2,7 +2,7 @@
 
 Agent de atendimento do service desk de TI da Nexo, em formato de chat: o funcionário descreve o problema com as próprias palavras, e o agent consulta os chamados dele, busca na central de ajuda, abre ou atualiza chamados e chama um analista quando precisa. Projeto do desafio técnico do processo seletivo Beyond the Bytes.
 
-> **Em construção, por partes.** Prontas: partes 1 (serviço de chamados), 2 (app web com login, sessão e banco de conversas), 3 (agent Mastra) e 4 (chat do funcionário); o console do analista chega na próxima. Plano e decisões em [docs/plano.md](docs/plano.md), requisitos em [docs/prd.md](docs/prd.md), protótipo em [docs/prototipo.md](docs/prototipo.md).
+> **Em construção, por partes.** Prontas: partes 1 (serviço de chamados), 2 (app web com login, sessão e banco de conversas), 3 (agent Mastra), 4 (chat do funcionário) e 5 (console do analista); falta o fechamento da parte 6. Plano e decisões em [docs/plano.md](docs/plano.md), requisitos em [docs/prd.md](docs/prd.md), protótipo em [docs/prototipo.md](docs/prototipo.md).
 
 ## Como rodar
 
@@ -13,7 +13,7 @@ cp .env.example .env   # opcional, os padrões funcionam
 docker compose up --build -d --wait
 ```
 
-O app abre em http://localhost:3000. Entre com `ana.souza@nexo.com.br` (funcionária) ou `rafael.lima@nexo.com.br` (analista), com qualquer senha.
+O app abre em http://localhost:3000. Entre com `ana.souza@nexo.com.br` (funcionária) ou `rafael.lima@nexo.com.br` (analista), com qualquer senha. O Compose já grava conversas de exemplo para o console do analista (`DEMO_DATA`, veja a parte 5).
 
 O serviço de chamados responde em http://localhost:8100 (documentação interativa em `/docs`). Toda chamada leva `X-API-Key`; as rotas de chamados também levam `X-Actor-Email`, que precisa existir no diretório:
 
@@ -73,13 +73,13 @@ A central de ajuda tem 10 artigos curtos (VPN erro 809, horário do service desk
 
 ## App web (parte 2)
 
-Next.js 16 com TypeScript estrito, em `apps/web`. Da interface do protótipo já existem o login (tela 1) e o Meu perfil; o chat e o console são esqueletos que ganham vida nas próximas partes.
+Next.js 16 com TypeScript estrito, em `apps/web`. A interface do protótipo está inteira: login, Meu perfil, o chat do funcionário (partes 3 e 4) e o console do analista (parte 5).
 
 | Rota | Quem | O que faz |
 | --- | --- | --- |
 | `/login` | todos | tela 1 do protótipo; funcionário segue para `/chat`, analista para `/console` |
-| `/chat`, `/profile` | funcionário | atendimento (esqueleto com o contador de mensagens vindo do banco) e Meu perfil |
-| `/console` | analista | console (esqueleto com as contagens das abas) |
+| `/chat`, `/profile` | funcionário | atendimento e Meu perfil |
+| `/console` | analista | lista de conversas, atendimento e chamados do funcionário |
 | `POST /api/auth/login`, `POST /api/auth/logout` | todos | abre e encerra a sessão |
 | `GET /api/health` | contêiner | verificação de saúde |
 
@@ -96,6 +96,16 @@ Para conversar de verdade, ponha a chave do provedor no `.env` (`ANTHROPIC_API_K
 - **Transparência:** acima de cada resposta aparecem os passos ("consultou seus chamados"). "Como decidi" abre o detalhe: o que entendeu, o que fez, por quê, a segurança com seus fatores, as regras (marcadas como verificadas pelo sistema ou só declaradas pelo agent), cada passo com tempo e o uso de tokens.
 - **Chat:** a resposta chega em streaming; cards de chamado, lista para escolher, rascunho com Confirmar, Editar e Cancelar (⌘↵ confirma), respostas rápidas, contador de 30 mensagens por sessão e avisos de transferência, atendimento por analista e limite. Enquanto um analista atende, a tela atualiza sozinha.
 - **Estado desta parte:** os testes automáticos usam um modelo roteirizado; a qualidade das decisões com um LLM real ainda será medida (parte 6).
+
+## Console do analista (parte 5)
+
+Entre com `rafael.lima@nexo.com.br` (N2) ou `marina.alves@nexo.com.br` (N1), com qualquer senha. Com `DEMO_DATA=true` (padrão do Compose, veja `.env.example`) um banco vazio ganha seis conversas de exemplo que cobrem todas as abas; Ana Souza fica sem conversa para o chat do funcionário poder ser testado do zero. `DEMO_DATA=false` começa vazio, e um banco que já tem conversas nunca é tocado.
+
+- **Lista:** abas Todas, Para você (esperando um analista), Com o agent e Minhas, com busca por nome, e-mail ou número de chamado. Cada linha diz quem está com a conversa e o que falta ("Transferida · INC-20402 · resposta até 17:42", "Agent pediu ajuda · confiança 45%", "Você está atendendo"); resposta atrasada fica em vermelho. A tela se atualiza sozinha a cada 5 s.
+- **Conversa:** o resumo da transferência que o agent escreveu, o histórico inteiro e, em cada resposta do agent, o mesmo "Como decidi" que o funcionário vê (sem botões).
+- **Ações:** *Assumir atendimento* pausa o agent e coloca o chamado transferido em "Em atendimento" no service desk; a resposta do analista chega ao funcionário na hora; *Devolver ao agent* e *Encerrar atendimento* ficam no cabeçalho. Só quem assumiu responde, devolve ou encerra, e se dois analistas assumem ao mesmo tempo só um consegue.
+- **Chamados do funcionário:** painel ao lado com os chamados ligados à conversa ("Desta conversa") e os outros, com status, prioridade e prazo vencido. Se o service desk estiver fora do ar, o painel avisa e mostra só os ligados à conversa.
+- **API (só analistas):** `GET /api/console/conversations?tab=&q=`, `GET /api/console/conversations/{id}` e `POST /api/console/conversations/{id}/actions` com `assume`, `message`, `return`, `close` ou `read`.
 
 ## Estrutura
 

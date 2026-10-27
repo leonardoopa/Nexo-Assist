@@ -6,28 +6,32 @@ import { useState, type KeyboardEvent, type RefObject } from "react";
 interface ComposerProps {
   disabled: boolean;
   placeholder: string;
-  counter: string;
+  /** The line under the field, e.g. how much of the session's message limit is used. */
+  counter?: string;
   /** A line above the field, e.g. what to write after pressing Editar. */
-  hint: string | null;
+  hint?: string | null;
   inputRef: RefObject<HTMLTextAreaElement | null>;
-  onSend: (text: string) => void;
+  /** Answer `false` (now or later) when the text could not be sent, so it comes back into the field instead of being lost. */
+  onSend: (text: string) => void | boolean | Promise<boolean | void>;
 }
 
-/** Enter sends, Shift+Enter breaks the line. The counter shows how much of the session's message limit is used. */
+/** Enter sends, Shift+Enter breaks the line. */
 export function Composer({ disabled, placeholder, counter, hint, inputRef, onSend }: ComposerProps) {
   const [text, setText] = useState("");
 
-  const submit = () => {
+  const submit = async () => {
     const value = text.trim();
     if (!value || disabled) return;
-    onSend(value);
     setText("");
+    const accepted = await onSend(value);
+    // Anything typed in the meantime stays; the text that failed only returns to an empty field.
+    if (accepted === false) setText((current) => current || value);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      submit();
+      void submit();
     }
   };
 
@@ -35,7 +39,7 @@ export function Composer({ disabled, placeholder, counter, hint, inputRef, onSen
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        submit();
+        void submit();
       }}
       className="flex flex-col gap-1.5"
     >
@@ -62,7 +66,7 @@ export function Composer({ disabled, placeholder, counter, hint, inputRef, onSen
           Enviar
         </button>
       </div>
-      <p className="text-right text-[12.5px] text-ink-3">{counter}</p>
+      {counter ? <p className="text-right text-[12.5px] text-ink-3">{counter}</p> : null}
     </form>
   );
 }
