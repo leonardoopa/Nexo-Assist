@@ -46,6 +46,8 @@ export interface ConsoleTicket {
   lastResponseAt: string;
   resolvedAt: string | null;
   assignedGroup: SupportGroup | null;
+  /** Name of the analyst who has the ticket. */
+  assignee: string | null;
 }
 
 /** The service desk is the unstable legacy system: the panel says so instead of failing the whole screen. */
@@ -62,4 +64,10 @@ export interface ConsoleDetail {
   messages: MessageView[];
   links: Array<{ ticketId: string; relation: TicketRelation; at: string }>;
   tickets: ConsoleTickets;
+}
+
+/** What an action answers with: the conversation as it is now, and a warning when a side effect failed. */
+export interface ConsoleActionResult {
+  detail: ConsoleDetail;
+  notice: string | null;
 }

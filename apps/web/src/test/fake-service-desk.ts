@@ -5,18 +5,21 @@ import type { NewTicketInput, TransferInput } from "@/server/servicedesk/client"
 import type { ServiceDeskPort } from "@/server/servicedesk/port";
 import type { Priority, ServiceDeskUser, Ticket, TicketDetail, TicketList } from "@/server/servicedesk/schemas";
 
-import { ANA, ANA_TICKETS, ARTICLES, CARLA, CARLA_TICKETS, NOW, ticket } from "./fixtures";
+import { ANA, ANA_TICKETS, ARTICLES, CARLA, CARLA_TICKETS, MARINA, NOW, RAFAEL, ticket } from "./fixtures";
 
 const USERS: Record<string, ServiceDeskUser> = {
   [ANA.email]: { ...ANA, role: "employee", device: { model: "Dell Latitude 5440", os: "Windows 11" }, passwordChangedAt: null },
   [CARLA.email]: { ...CARLA, role: "employee", device: { model: "Lenovo ThinkPad T14", os: "Windows 11" }, passwordChangedAt: null },
+  [RAFAEL.email]: { ...RAFAEL, role: "analyst", device: null, passwordChangedAt: null },
+  [MARINA.email]: { ...MARINA, role: "analyst", device: null, passwordChangedAt: null },
 };
 
 const SLA_HOURS: Record<Priority, number> = { critica: 1, alta: 4, media: 72, baixa: 120 };
 
 /**
- * An in-memory service desk with the same rules the real one enforces where the agent depends on
- * them (employees only see their own tickets, writes are idempotent), plus a call log and failure injection.
+ * An in-memory service desk with the same rules the real one enforces where the agent and the
+ * console depend on them (employees only see their own tickets, analysts see everyone's, writes
+ * are idempotent), plus a call log and failure injection.
  */
 export class FakeServiceDesk implements ServiceDeskPort {
   readonly tickets: TicketDetail[];
@@ -50,6 +53,15 @@ export class FakeServiceDesk implements ServiceDeskPort {
     return this.tickets.find((entry) => entry.id === id && entry.requester.email === actor) ?? null;
   }
 
+  #isAnalyst(actor: string): boolean {
+    return USERS[actor]?.role === "analyst";
+  }
+
+  /** What `actor` may open: analysts any ticket, employees their own. */
+  #visible(actor: string, id: string): TicketDetail | null {
+    return this.#isAnalyst(actor) ? (this.tickets.find((entry) => entry.id === id) ?? null) : this.#own(actor, id);
+  }
+
   #once(actor: string, key: string, work: () => TicketDetail): TicketDetail {
     const replay = this.#replays.get(`${actor}:${key}`);
     if (replay) return replay;
@@ -63,12 +75,16 @@ export class FakeServiceDesk implements ServiceDeskPort {
     return USERS[email] ?? null;
   }
 
-  async listTickets(actor: string, query: { status?: "open" | "closed" | "all"; q?: string; limit?: number } = {}): Promise<TicketList> {
+  async listTickets(
+    actor: string,
+    query: { status?: "open" | "closed" | "all"; q?: string; requester?: string; limit?: number } = {},
+  ): Promise<TicketList> {
     this.#enter("listTickets", [actor, query]);
     const status = query.status ?? "open";
+    const analyst = this.#isAnalyst(actor);
     let items: Ticket[] = this.tickets.filter(
       (entry) =>
-        entry.requester.email === actor &&
+        (analyst ? query.requester === undefined || entry.requester.email === query.requester : entry.requester.email === actor) &&
         (status === "all" || (status === "open" ? entry.status !== "resolvido" : entry.status === "resolvido")),
     );
     if (query.q) {
@@ -87,7 +103,7 @@ export class FakeServiceDesk implements ServiceDeskPort {
 
   async getTicket(actor: string, ticketId: string): Promise<TicketDetail | null> {
     this.#enter("getTicket", [actor, ticketId]);
-    return this.#own(actor, ticketId);
+    return this.#visible(actor, ticketId);
   }
 
   async getSla(priority: Priority) {
@@ -183,6 +199,30 @@ export class FakeServiceDesk implements ServiceDeskPort {
       found.resolvedAt = null;
       found.canReopen = false;
       found.events.push({ id: found.events.length + 1, at: NOW.toISOString(), kind: "reopened", actor: found.requester, text: reason, meta: {} });
+      return found;
+    });
+  }
+
+  async assumeTicket(actor: string, ticketId: string, idempotencyKey: string): Promise<TicketDetail> {
+    this.#enter("assumeTicket", [actor, ticketId, idempotencyKey]);
+    return this.#once(actor, idempotencyKey, () => {
+      const analyst = USERS[actor];
+      if (analyst?.role !== "analyst") throw new ServiceDeskApiError("Apenas analistas podem assumir chamados.", "forbidden", 403);
+      const found = this.#visible(actor, ticketId);
+      if (!found) throw new ServiceDeskApiError("Chamado não encontrado.", "ticket_not_found", 404);
+      if (found.status === "resolvido") throw new ServiceDeskApiError("O chamado já foi resolvido.", "ticket_resolved", 409);
+      found.status = "em_atendimento";
+      found.assignee = analyst;
+      found.assignedGroup = analyst.supportGroup;
+      found.lastResponseAt = NOW.toISOString();
+      found.events.push({
+        id: found.events.length + 1,
+        at: NOW.toISOString(),
+        kind: "assumed",
+        actor: analyst,
+        text: `${analyst.name} assumiu o atendimento.`,
+        meta: {},
+      });
       return found;
     });
   }

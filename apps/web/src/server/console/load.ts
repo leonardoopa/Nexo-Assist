@@ -64,6 +64,7 @@ async function employeeTickets(deps: ConsoleDeps, analyst: AnalystRef, employeeE
         lastResponseAt: ticket.lastResponseAt,
         resolvedAt: ticket.resolvedAt,
         assignedGroup: ticket.assignedGroup,
+        assignee: ticket.assignee?.name ?? null,
       })),
     };
   } catch (error) {
