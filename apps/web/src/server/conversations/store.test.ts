@@ -70,6 +70,16 @@ describe("starting and resuming", () => {
     expect(codeOf(() => store.start(ana))).toBe("active_exists");
   });
 
+  it("finds the latest conversation, open or closed", () => {
+    const store = makeStore();
+    const first = store.start(ana);
+    store.close(first.id, "agent");
+    expect(store.findLatest(ana.email)?.id).toBe(first.id);
+    const second = store.start(ana);
+    expect(store.findLatest(ana.email)?.id).toBe(second.id);
+    expect(store.findLatest(carla.email)).toBeNull();
+  });
+
   it("keeps one employee's conversation out of another's reach", () => {
     const store = makeStore();
     const { id } = store.start(ana);

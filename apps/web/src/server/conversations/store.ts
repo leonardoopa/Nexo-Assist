@@ -164,6 +164,14 @@ export class ConversationStore {
     return rows.map(toMessage);
   }
 
+  /** The most recent conversation of the employee, open or closed. */
+  findLatest(email: string): Conversation | null {
+    const row = this.#db
+      .prepare("SELECT * FROM conversations WHERE employee_email = ? ORDER BY created_at DESC, rowid DESC LIMIT 1")
+      .get(email) as ConversationRow | undefined;
+    return row ? toConversation(row) : null;
+  }
+
   getMessage(messageId: string): Message | null {
     const row = this.#db.prepare("SELECT * FROM messages WHERE id = ?").get(messageId) as MessageRow | undefined;
     return row ? toMessage(row) : null;
@@ -185,11 +193,11 @@ export class ConversationStore {
       .run(conversationId, ticketId, relation, this.#now());
   }
 
-  linkedTickets(conversationId: string): Array<{ ticketId: string; relation: TicketRelation }> {
+  linkedTickets(conversationId: string): Array<{ ticketId: string; relation: TicketRelation; at: string }> {
     const rows = this.#db
-      .prepare("SELECT ticket_id, relation FROM conversation_tickets WHERE conversation_id = ? ORDER BY at, ticket_id")
-      .all(conversationId) as Array<{ ticket_id: string; relation: TicketRelation }>;
-    return rows.map((row) => ({ ticketId: row.ticket_id, relation: row.relation }));
+      .prepare("SELECT ticket_id, relation, at FROM conversation_tickets WHERE conversation_id = ? ORDER BY at, ticket_id")
+      .all(conversationId) as Array<{ ticket_id: string; relation: TicketRelation; at: string }>;
+    return rows.map((row) => ({ ticketId: row.ticket_id, relation: row.relation, at: row.at }));
   }
 
   // ---- starting ----------------------------------------------------------------------------------
@@ -370,8 +378,11 @@ export class ConversationStore {
     }
     if (search?.trim()) {
       const like = `%${escapeLike(search.trim())}%`;
-      where.push("(employee_name LIKE ? ESCAPE '\\' OR employee_email LIKE ? ESCAPE '\\')");
-      params.push(like, like);
+      where.push(
+        "(employee_name LIKE ? ESCAPE '\\' OR employee_email LIKE ? ESCAPE '\\' OR " +
+          "id IN (SELECT conversation_id FROM conversation_tickets WHERE ticket_id LIKE ? ESCAPE '\\'))",
+      );
+      params.push(like, like, like);
     }
     const rows = this.#db
       .prepare(

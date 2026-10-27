@@ -7,7 +7,7 @@ O desenvolvimento acontece na branch `staging`, em partes pequenas, para que cad
 | 1 | Serviço de chamados legado simulado (Python): chamados, central de ajuda, diretório, SLA em horário útil, instabilidade simulada, dados de exemplo, testes, Docker | pronta |
 | 2 | App web (Next.js 16, TypeScript estrito): login (tela 1), sessão, Meu perfil, esqueleto do chat e do console, banco de conversas com estados, cliente tipado do serviço com retentativas e idempotência, tokens de design | pronta |
 | 3 | Agent (Mastra): tools sobre o serviço e a central de ajuda, regras do Anexo A em código, registro estruturado de cada decisão, streaming | escrita e testada com modelo roteirizado; falta testar com LLM real |
-| 4 | Chat do funcionário (telas 2 e 3) com cards, rascunho para confirmação, opções rápidas, limite de 30 mensagens e painel de transparência | pendente |
+| 4 | Chat do funcionário (telas 2 e 3) com cards, rascunho para confirmação, opções rápidas, limite de 30 mensagens e painel de transparência | pronta; conferida no navegador com stream simulado |
 | 5 | Console do analista (telas 4 e 5): lista com filtros, assumir, devolver, encerrar, chamados do funcionário | pendente |
 | 6 | README final (arquitetura, como o agent decide, qualidade, trade-offs), avaliações do agent, métricas reais na tela de login, deploy opcional | pendente |
 
