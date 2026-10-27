@@ -21,3 +21,48 @@ export function initials(name: string): string {
 export function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] ?? name;
 }
+
+// Times are shown in the company's timezone, whatever the browser or the server uses.
+const TIMEZONE = "America/Sao_Paulo";
+const clock = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: TIMEZONE });
+const dayOfMonth = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: TIMEZONE });
+const calendarDay = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TIMEZONE });
+
+/** "13:43" */
+export const formatClock = (iso: string): string => clock.format(new Date(iso));
+
+/** "16 out" */
+export function formatShortDate(iso: string): string {
+  const parts = dayOfMonth.formatToParts(new Date(iso));
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  const month = (parts.find((part) => part.type === "month")?.value ?? "").replace(".", "");
+  return `${day} ${month}`;
+}
+
+/** "16 out, 14:20" */
+export const formatDateTime = (iso: string): string => `${formatShortDate(iso)}, ${formatClock(iso)}`;
+
+/** The calendar day in the company's timezone, "2026-10-28": two instants share a day when this matches. */
+export const dayKey = (iso: string): string => calendarDay.format(new Date(iso));
+
+/** "Hoje", "Ontem" or "16 out": the label of a day separator in a transcript. */
+export function formatDayLabel(iso: string, now: Date = new Date()): string {
+  const day = dayKey(iso);
+  if (day === dayKey(now.toISOString())) return "Hoje";
+  if (day === dayKey(new Date(now.getTime() - DAY_MS).toISOString())) return "Ontem";
+  return formatShortDate(iso);
+}
+
+/** The time on a list row: "13:43" for today, "16 out" for another day. */
+export function formatListTime(iso: string, now: Date = new Date()): string {
+  return dayKey(iso) === dayKey(now.toISOString()) ? formatClock(iso) : formatShortDate(iso);
+}
+
+/** "até 13:43" for a time today, "até 30 out, 10:00" for another day. */
+export function formatUntil(iso: string, now: Date = new Date()): string {
+  const sameDay = calendarDay.format(new Date(iso)) === calendarDay.format(now);
+  return sameDay ? `até ${formatClock(iso)}` : `até ${formatDateTime(iso)}`;
+}
+
+/** How a draft is named on screen: D-381. */
+export const formatDraftId = (id: number): string => `D-${String(id).padStart(3, "0")}`;

@@ -8,6 +8,8 @@ const daysAhead = (days: number) => new Date(NOW.getTime() + days * 24 * 60 * 60
 
 export const ANA = { email: "ana.souza@nexo.com.br", name: "Ana Souza", department: "Financeiro", supportGroup: null } as const;
 export const CARLA = { email: "carla.mendes@nexo.com.br", name: "Carla Mendes", department: "Controladoria", supportGroup: null } as const;
+export const RAFAEL = { email: "rafael.lima@nexo.com.br", name: "Rafael Lima", department: "Service Desk", supportGroup: "N2" } as const;
+export const MARINA = { email: "marina.alves@nexo.com.br", name: "Marina Alves", department: "Service Desk", supportGroup: "N1" } as const;
 
 export function ticket(overrides: Partial<Ticket> & Pick<Ticket, "id" | "title">): Ticket {
   return {

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { seedDemoConversations } from "@/server/demo/seed";
 import { getEnv } from "@/server/env";
 
 import { openDatabase } from "./open";
@@ -9,7 +10,12 @@ import type { Db } from "./types";
 const shared = globalThis as unknown as { __nexoDb?: Db };
 
 export function getDb(): Db {
-  shared.__nexoDb ??= openDatabase(getEnv().DATABASE_PATH);
+  if (!shared.__nexoDb) {
+    const env = getEnv();
+    const db = openDatabase(env.DATABASE_PATH);
+    if (env.DEMO_DATA) seedDemoConversations(db, { now: new Date(), messageLimit: env.CHAT_MESSAGE_LIMIT });
+    shared.__nexoDb = db;
+  }
   return shared.__nexoDb;
 }
 

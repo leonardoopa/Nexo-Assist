@@ -70,6 +70,16 @@ describe("starting and resuming", () => {
     expect(codeOf(() => store.start(ana))).toBe("active_exists");
   });
 
+  it("finds the latest conversation, open or closed", () => {
+    const store = makeStore();
+    const first = store.start(ana);
+    store.close(first.id, "agent");
+    expect(store.findLatest(ana.email)?.id).toBe(first.id);
+    const second = store.start(ana);
+    expect(store.findLatest(ana.email)?.id).toBe(second.id);
+    expect(store.findLatest(carla.email)).toBeNull();
+  });
+
   it("keeps one employee's conversation out of another's reach", () => {
     const store = makeStore();
     const { id } = store.start(ana);
@@ -173,7 +183,8 @@ describe("handoff to an analyst", () => {
 
     expect(back).toMatchObject({ status: "agent", handoff: null, assignee: null });
     expect(() => say(store, id, "assistant", "De volta por aqui.")).not.toThrow();
-    expect(store.messages(id).some((message) => message.parts.some((part) => part.kind === "returned_to_agent"))).toBe(true);
+    const events = store.messages(id).flatMap((message) => message.parts.flatMap((part) => (part.type === "event" ? [part.kind] : [])));
+    expect(events).toContain("returned_to_agent");
   });
 
   it("closes the conversation, and the next visit starts a fresh one", () => {

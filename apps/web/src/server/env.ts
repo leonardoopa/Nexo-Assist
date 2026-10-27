@@ -8,6 +8,13 @@ const envSchema = z.object({
   SERVICEDESK_API_KEY: z.string().min(1, "é obrigatória"),
   DATABASE_PATH: z.string().min(1).default("./data/nexo-assist.db"),
   CHAT_MESSAGE_LIMIT: z.coerce.number().int().positive().default(30),
+  // Mastra model router id, "provider/model". The provider's API key (e.g. ANTHROPIC_API_KEY) is read by Mastra itself.
+  LLM_MODEL: z
+    .string()
+    .regex(/^[a-z0-9-]+\/.+$/, "use o formato provedor/modelo, por exemplo anthropic/claude-haiku-5-5")
+    .default("anthropic/claude-haiku-5-5"),
+  // Fills an empty database with sample conversations so the analyst console has something to show.
+  DEMO_DATA: z.stringbool().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;

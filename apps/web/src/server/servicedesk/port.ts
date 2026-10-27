@@ -12,4 +12,5 @@ export type ServiceDeskPort = Pick<
   | "addUpdate"
   | "transferTicket"
   | "reopenTicket"
+  | "assumeTicket"
 >;
