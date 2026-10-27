@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* Design tokens taken from the prototype (docs/prototipo.md). */
+@theme {
+  --font-sans: "Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Newsreader Variable", ui-serif, Georgia, serif;
+
+  --color-ink: #1b2431;
+  --color-ink-2: #3d4656;
+  --color-ink-3: #5b6472;
+  --color-rule: #e6e8ec;
+  --color-paper: #ffffff;
+  --color-desk: #f6f7f9;
+
+  --color-cta: #0062c4;
+  --color-cta-hover: #0055ab;
+  --color-primary: #0285f7;
+  --color-primary-text: #0069c7;
+  --color-primary-soft: rgb(2 133 247 / 0.07);
+
+  --color-success: #00bd6c;
+  --color-success-text: #00804a;
+  --color-success-soft: rgb(0 189 108 / 0.08);
+  --color-warning: #f5a500;
+  --color-warning-text: #946300;
+  --color-warning-soft: rgb(245 165 0 / 0.09);
+  --color-danger: #ee343b;
+  --color-danger-text: #c4161d;
+  --color-danger-soft: rgb(238 52 59 / 0.07);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cta);
+    outline-offset: 2px;
+  }
+}
