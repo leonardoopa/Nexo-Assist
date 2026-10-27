@@ -38,7 +38,7 @@ export function assessConfidence(modelScore: number, evidence: ConfidenceEvidenc
   let score = Math.min(1, Math.max(0, modelScore));
 
   if (evidence.explicitConfirmation) {
-    factors.push({ label: "Confirmação explícita do funcionário", effect: "raises" });
+    factors.push({ label: "Decisão explícita do funcionário (botão ou resposta direta)", effect: "raises" });
     score = Math.max(score, 0.95);
   }
   if (evidence.knowledgeTopScore !== null) {

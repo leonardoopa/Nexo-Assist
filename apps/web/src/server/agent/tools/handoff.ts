@@ -1,11 +1,10 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
-import { SLA_LABEL } from "@/lib/labels";
 import { handoffReasonSchema } from "@/server/conversations/types";
 
-import { groupFor, validateHandoff } from "../policy/handoff";
-import { runStep } from "../steps";
+import { planHandoff } from "../handoff";
+import { validateHandoff } from "../policy/handoff";
 import { findOwnTicket, toolFailure, turnOf } from "./shared";
 
 export const transferToAnalyst = createTool({
@@ -28,39 +27,17 @@ export const transferToAnalyst = createTool({
       if (ticketId && !ticket) {
         return { ok: false as const, error: "ticket_not_found", message: "Not among this employee's tickets." };
       }
-      const verdict = validateHandoff({
-        reason,
-        ticket,
-        criticalClassified: ctx.priority?.decision.priority === "critica",
-      });
+      const verdict = validateHandoff({ reason, ticket, criticalClassified: ctx.priority?.decision.priority === "critica" });
       if (!verdict.ok) return { ok: false as const, error: "handoff_not_allowed", message: verdict.message };
 
-      const group = groupFor(reason);
-      const urgency = reason === "critical" ? "critica" : "alta";
-      const plan = await runStep(
-        ctx,
-        { tool: "transfer_to_analyst", input: { reason, group, ...(ticket ? { ticketId: ticket.id } : {}) } },
-        async () => {
-          let respondBy: string | null = null;
-          let respondByLabel: string = SLA_LABEL[urgency];
-          try {
-            const preview = await ctx.deps.serviceDesk.getSla(urgency);
-            respondBy = preview.dueAt;
-            respondByLabel = preview.label;
-          } catch (error) {
-            toolFailure(ctx, error); // keep the fixed label; only the exact time is lost
-          }
-          return { reason, group, summary, ticketId: ticket?.id ?? null, respondBy, respondByLabel, auto: false };
-        },
-        (result) => `Suporte ${result.group}, resposta em até ${result.respondByLabel}`,
-      );
+      const plan = await planHandoff(ctx, { reason, summary, ticketId: ticket?.id ?? null, auto: false });
       ctx.handoff = plan;
       return {
         ok: true as const,
         status: "transfer_scheduled" as const,
-        group,
+        group: plan.group,
         expectedResponse: plan.respondByLabel,
-        next: "Tell the employee you are handing the case to an analyst, which group, and how soon they will be answered. The agent will be silent afterwards.",
+        next: "Tell the employee you are handing the case to an analyst, which group, and how soon they will be answered. The agent stays silent afterwards.",
       };
     } catch (error) {
       return toolFailure(ctx, error);

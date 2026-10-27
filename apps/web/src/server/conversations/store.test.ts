@@ -173,7 +173,8 @@ describe("handoff to an analyst", () => {
 
     expect(back).toMatchObject({ status: "agent", handoff: null, assignee: null });
     expect(() => say(store, id, "assistant", "De volta por aqui.")).not.toThrow();
-    expect(store.messages(id).some((message) => message.parts.some((part) => part.kind === "returned_to_agent"))).toBe(true);
+    const events = store.messages(id).flatMap((message) => message.parts.flatMap((part) => (part.type === "event" ? [part.kind] : [])));
+    expect(events).toContain("returned_to_agent");
   });
 
   it("closes the conversation, and the next visit starts a fresh one", () => {

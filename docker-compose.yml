@@ -47,6 +47,12 @@ services:
       SERVICEDESK_API_KEY: ${SERVICEDESK_API_KEY:-dev-servicedesk-key}
       DATABASE_PATH: /data/nexo-assist.db
       CHAT_MESSAGE_LIMIT: ${CHAT_MESSAGE_LIMIT:-30}
+      LLM_MODEL: ${LLM_MODEL:-anthropic/claude-haiku-5-5}
+      # Only the key of the chosen provider is needed; empty values are treated as missing.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      MASTRA_TELEMETRY_DISABLED: "1"
     volumes:
       - web-data:/data
     ports:
